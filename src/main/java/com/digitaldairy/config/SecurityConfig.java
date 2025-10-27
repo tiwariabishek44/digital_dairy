@@ -51,7 +51,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())  // Stateless API, no CSRF
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/dairy/**").permitAll()  // Public login/reg
+                        .requestMatchers("/api/auth/**", "/api/dairy/**","api/staff/**").permitAll()  // Public login/reg
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()  // Swagger for dev
                         .requestMatchers("/actuator/health").permitAll()
                         .anyRequest().authenticated()
