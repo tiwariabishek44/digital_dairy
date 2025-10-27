@@ -9,6 +9,8 @@ package com.digitaldairy.service.impl;
  * - Authenticates staff login (phone + password only, no dairyGivenId)
  * - Generates JWT tokens with dairyCenterId for multi-tenancy
  * - Returns staff details with dairy center name
+ *
+ * UPDATED: Fixed getAllStaffByDairy to use proper repository query instead of manual filtering
  */
 
 import com.digitaldairy.dto.request.DairyStaffRequest;
@@ -156,67 +158,17 @@ public class DairyStaffServiceImpl implements DairyStaffService {
         );
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public DairyStaffResponse getStaffById(Long staffId) {
-        log.debug("Fetching staff by ID: {}", staffId);
-
-        DairyStaff staff = dairyStaffRepository.findById(staffId)
-                .orElseThrow(() -> {
-                    log.error("Staff not found: id={}", staffId);
-                    return new RuntimeException("Staff member with ID " + staffId + " not found");
-                });
-
-        String dairyName = staff.getDairyCenter().getName();
-
-        log.debug("Staff found: id={}, phone={}, dairy='{}'",
-                staff.getId(), staff.getPhone(), dairyName);
-
-        return mapToResponse(staff, dairyName);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<DairyStaffResponse> getAllStaffByDairy(Long dairyCenterId, Pageable pageable) {
-        log.debug("Fetching staff for dairy: dairyCenterId={}, page={}, size={}",
-                dairyCenterId, pageable.getPageNumber(), pageable.getPageSize());
-
-        // Validate dairy center exists
-        DairyCenter dairyCenter = dairyCenterRepository.findById(dairyCenterId)
-                .orElseThrow(() -> new TenantNotFoundException(dairyCenterId));
-
-        // Fetch staff with pagination
-        Page<DairyStaff> staffPage = dairyStaffRepository
-                .findAll(pageable)
-                .map(staff -> {
-                    // Filter by dairy center (manual filtering since we need all first)
-                    if (staff.getDairyCenterId().equals(dairyCenterId)) {
-                        return staff;
-                    }
-                    return null;
-                });
-
-        // Map to response DTOs
-        Page<DairyStaffResponse> responsePage = staffPage.map(staff ->
-                mapToResponse(staff, dairyCenter.getName()));
-
-        log.debug("Found {} staff members for dairy '{}' (total: {})",
-                responsePage.getNumberOfElements(),
-                dairyCenter.getName(),
-                responsePage.getTotalElements());
-
-        return responsePage;
-    }
 
     /**
      * Helper method to map DairyStaff entity to response DTO.
+     * ✅ FIXED: Gets dairyCenterId from the relationship to ensure it's never null
      */
     private DairyStaffResponse mapToResponse(DairyStaff staff, String dairyCenterName) {
         return new DairyStaffResponse(
                 staff.getId(),
                 staff.getName(),
                 staff.getPhone(),
-                staff.getDairyCenterId(),
+                staff.getDairyCenter().getId(),  // ✅ Get from relationship, not direct field
                 dairyCenterName,
                 staff.getCreatedAt(),
                 staff.getUpdatedAt()

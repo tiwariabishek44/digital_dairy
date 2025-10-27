@@ -26,7 +26,4 @@ public interface DairyStaffService {
 
     LoginResponse staffLogin(LoginRequest request);
 
-    DairyStaffResponse getStaffById(Long staffId);
-
-    Page<DairyStaffResponse> getAllStaffByDairy(Long dairyCenterId, Pageable pageable);
 }
